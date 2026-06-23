@@ -15,6 +15,8 @@ import java.time.LocalDate;
 @Entity
 @AllArgsConstructor
 @Data
+@Setter
+@Getter
 @NoArgsConstructor
 @Builder
 public class Subscription extends AbstractEntity {
@@ -23,13 +25,19 @@ public class Subscription extends AbstractEntity {
 
     private BigDecimal amount;
 
+    private LocalDate startDate;
     //keyngi tolov sanasi
-    private LocalDate billingDate;
+    private LocalDate setNextPaymentDate;
 
     private SubscriptionStatus status;
 
     private BillingCycle billingCycle;
 
+    private Boolean isDelete;
+
     @ManyToOne
     private Users user;
+
+
+
 }

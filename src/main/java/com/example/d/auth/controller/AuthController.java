@@ -1,5 +1,6 @@
 package com.example.d.auth.controller;
 
+import com.example.d.auth.dto.AuthResponse;
 import com.example.d.auth.dto.LoginDto;
 import com.example.d.auth.dto.RegisterDto;
 import com.example.d.auth.service.AuthService;
@@ -24,8 +25,8 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody @Valid LoginDto loginDto) {
-        ApiResponse response = authService.login(loginDto);
-        return ResponseEntity.status(response.isStatus() ? 200 : 409).body(response);
+        AuthResponse response = authService.login(loginDto);
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/verify")

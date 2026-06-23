@@ -3,7 +3,7 @@ package com.example.d.user.entity;
 import com.example.d.auth.entity.RefreshToken;
 import com.example.d.extra.AbstractEntity;
 import com.example.d.subscription.entity.Subscription;
-import com.example.d.user.enums.CurrencyType;
+import com.example.d.subscription.enums.CurrencyType;
 import com.example.d.user.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
