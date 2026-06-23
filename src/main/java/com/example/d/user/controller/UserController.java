@@ -1,0 +1,49 @@
+package com.example.d.user.controller;
+
+import com.example.d.extra.ApiResponse;
+import com.example.d.user.dto.UserResponse;
+import com.example.d.user.dto.UserUpdateResponse;
+import com.example.d.user.service.UserService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/v1/user")
+public class UserController {
+    private final UserService userService;
+
+    //Admin
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getUserById(@PathVariable Integer id) {
+        ApiResponse apiResponse=userService.getUserById(id);
+        return ResponseEntity.ok(apiResponse);
+    }
+
+
+    //Admin
+    @GetMapping
+    public Page<UserResponse> getUsers(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+         return userService.getUsers(page, size);
+    }
+
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateUser(@PathVariable Integer id, @RequestBody UserUpdateResponse dto,Authentication authentication) {
+        ApiResponse apiResponse=userService.updateUser(id, dto,authentication);
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @DeleteMapping("/me/{id}")
+    public ResponseEntity<?> deleteUser(@PathVariable Integer id, Authentication authentication) {
+        ApiResponse apiResponse=userService.deleteUser(id,authentication);
+        return ResponseEntity.ok(apiResponse);
+    }
+
+
+
+
+}
