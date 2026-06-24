@@ -5,12 +5,10 @@ import com.example.d.subscription.enums.BillingCycle;
 import com.example.d.subscription.enums.CurrencyType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-@Getter
 public class SubscriptionCreateRequest {
     @NotBlank(message = "Obuna nomi bo'sh bo'lishi mumkin emas")
     private String serviceName;
@@ -28,4 +26,37 @@ public class SubscriptionCreateRequest {
     private LocalDate startDate;
 
     private SubscriptionCategory subscriptionCategory;
+
+    public SubscriptionCreateRequest(String serviceName, BigDecimal price, CurrencyType currency, BillingCycle billingCycle, LocalDate startDate, SubscriptionCategory subscriptionCategory) {
+        this.serviceName = serviceName;
+        this.price = price;
+        this.currency = currency;
+        this.billingCycle = billingCycle;
+        this.startDate = startDate;
+        this.subscriptionCategory = subscriptionCategory;
+    }
+
+    public String getServiceName() {
+        return serviceName;
+    }
+
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+    public CurrencyType getCurrency() {
+        return currency;
+    }
+
+    public BillingCycle getBillingCycle() {
+        return billingCycle;
+    }
+
+    public LocalDate getStartDate() {
+        return startDate;
+    }
+
+    public SubscriptionCategory getSubscriptionCategory() {
+        return subscriptionCategory;
+    }
 }
