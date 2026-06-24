@@ -1,5 +1,6 @@
 package com.example.d.subscription.dto;
 
+import com.example.d.analytics.enums.SubscriptionCategory;
 import com.example.d.subscription.enums.BillingCycle;
 import com.example.d.subscription.enums.CurrencyType;
 import jakarta.validation.constraints.NotBlank;
@@ -25,4 +26,6 @@ public class SubscriptionCreateRequest {
 
     @NotNull(message = "Boshlanish sanasi kiritilishi shart")
     private LocalDate startDate;
+
+    private SubscriptionCategory subscriptionCategory;
 }
