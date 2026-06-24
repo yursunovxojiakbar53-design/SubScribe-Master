@@ -1,6 +1,7 @@
 package com.example.d.user.controller;
 
 import com.example.d.extra.ApiResponse;
+import com.example.d.subscription.enums.CurrencyType;
 import com.example.d.user.dto.UserResponse;
 import com.example.d.user.dto.UserUpdateResponse;
 import com.example.d.user.service.UserService;
@@ -45,5 +46,10 @@ public class UserController {
 
 
 
+    @PatchMapping("/preferences/currency")
+    public ResponseEntity<?> updatePreferredCurrency(
+            @RequestParam CurrencyType currency, Authentication authentication) {
+        return ResponseEntity.ok(userService.updatePreferredCurrency(currency, authentication));
+    }
 
 }

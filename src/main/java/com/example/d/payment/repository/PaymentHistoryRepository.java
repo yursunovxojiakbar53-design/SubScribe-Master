@@ -14,4 +14,6 @@ public interface PaymentHistoryRepository extends JpaRepository<PaymentHistory, 
             Integer userId, LocalDate start, LocalDate end);
 
     List<PaymentHistory> findBySubscription_User_Id(Integer userId);
+
+
 }

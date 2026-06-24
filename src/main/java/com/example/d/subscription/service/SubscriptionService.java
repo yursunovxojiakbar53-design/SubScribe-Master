@@ -1,9 +1,10 @@
 package com.example.d.subscription.service;
 
+import com.example.d.currency.service.CurrencyService;
 import com.example.d.exception.ForbiddenException;
 import com.example.d.exception.NotFoundException;
 import com.example.d.extra.ApiResponse;
-import com.example.d.security.CustomUserDetails;
+import com.example.d.security.SecurityUtils;
 import com.example.d.subscription.dto.SubscriptionCreateRequest;
 import com.example.d.subscription.dto.SubscriptionResponse;
 import com.example.d.subscription.entity.Subscription;
@@ -21,7 +22,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -29,24 +32,41 @@ public class SubscriptionService {
     private final SubscriptionMapper subscriptionMapper;
     private final UserRepo userRepo;
     private final SubscriptionRepository subscriptionRepository;
+    private final CurrencyService currencyService;
+    private final SecurityUtils securityUtils;
 
+    @Transactional
     public ApiResponse addSubscription(SubscriptionCreateRequest request, Authentication authentication) {
-        String userName = getUser(authentication);
+        String userName = securityUtils.getUsername(authentication);
         Users user = userRepo.findByUsername(userName).orElseThrow(() -> new NotFoundException("User not found"));
 
         Subscription subscription = subscriptionMapper.toEntity(request);
         subscription.setUser(user);
         subscription.setStatus(SubscriptionStatus.ACTIVE);
+        subscription.setIsDelete(false);
         subscription.setSetNextPaymentDate(calculateNextPaymentDate(subscription.getStartDate(), subscription.getBillingCycle()));
-        user.getSubscriptions().add(subscription);
+
         subscriptionRepository.save(subscription);
-        return new ApiResponse("Subscription added successfully", true);
+
+        return new ApiResponse("Subscription added successfully", true, buildResponse(subscription, user));
+    }
+
+    private SubscriptionResponse buildResponse(Subscription subscription, Users user) {
+        SubscriptionResponse base = subscriptionMapper.toResponse(subscription);
+
+        BigDecimal equivalent = currencyService.convert(subscription.getAmount(), subscription.getCurrency(), user.getPreferredCurrency());
+
+        return new SubscriptionResponse(
+                base.id(), base.serviceName(), base.price(), base.currency(),
+                equivalent, base.startDate(), base.nextPaymentDate(),
+                base.billingCycle(), base.status()
+        );
     }
 
 
     public ApiResponse getSubscription(int page, int size, Authentication authentication) {
-        Pageable pageable=  PageRequest.of(page,size);
-        String userName = getUser(authentication);
+        Pageable pageable = PageRequest.of(page, size);
+        String userName = securityUtils.getUsername(authentication);
         Users users = userRepo.findByUsername(userName).orElseThrow(() -> new NotFoundException("User not found"));
         Page<Subscription> subscriptions = subscriptionRepository.findByUser_IdAndIsDeleteFalse(users.getId(), pageable);
         Page<SubscriptionResponse> response = subscriptions.map(subscriptionMapper::toResponse);
@@ -56,9 +76,10 @@ public class SubscriptionService {
 
     @Transactional
     public ApiResponse updateSubscription(Integer id, SubscriptionCreateRequest request, Authentication authentication) {
-        Subscription subscription= subscriptionRepository.findById(id).orElseThrow(() -> new NotFoundException("Subscription not found"));
-        String userName = getUser(authentication);
-        if (!subscription.getUser().getUsername().equals(userName))throw new ForbiddenException("User not allowed to update subscription");
+        Subscription subscription = subscriptionRepository.findById(id).orElseThrow(() -> new NotFoundException("Subscription not found"));
+        String userName = securityUtils.getUsername(authentication);
+        if (!subscription.getUser().getUsername().equals(userName))
+            throw new ForbiddenException("User not allowed to update subscription");
 
         subscriptionMapper.updateEntityFromDto(request, subscription);
         subscription.setSetNextPaymentDate(calculateNextPaymentDate(request.getStartDate(), request.getBillingCycle()));
@@ -70,7 +91,7 @@ public class SubscriptionService {
     @Transactional
     public ApiResponse deleteSubscription(Integer id, Authentication authentication) {
         Subscription subscription = subscriptionRepository.findById(id).orElseThrow(() -> new NotFoundException("Subscription not found"));
-        String userName = getUser(authentication);
+        String userName = securityUtils.getUsername(authentication);
         if (!subscription.getUser().getUsername().equals(userName))
             throw new ForbiddenException("User not allowed to delete subscription");
 
@@ -80,12 +101,6 @@ public class SubscriptionService {
     }
 
 
-
-
-
-
-
-
     private LocalDate calculateNextPaymentDate(LocalDate startDate, BillingCycle billingCycle) {
         return switch (billingCycle) {
             case WEEKLY -> startDate.plusWeeks(1);
@@ -93,14 +108,14 @@ public class SubscriptionService {
             case YEARLY -> startDate.plusYears(1);
         };
     }
+    public List<Subscription> findSubscriptionsWithPaymentInDays(int days) {
 
+        LocalDate targetDate = LocalDate.now().plusDays(days);
 
-    public String getUser(org.springframework.security.core.Authentication authentication) {
-        if (!(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
-            throw new ForbiddenException("Invalid user");
-        }
-        return userDetails.getUsername();
+        return subscriptionRepository.findAllBySetNextPaymentDate(targetDate);
     }
+
+
 
 
 }

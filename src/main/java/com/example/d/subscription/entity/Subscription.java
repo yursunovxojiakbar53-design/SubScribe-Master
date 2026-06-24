@@ -2,9 +2,12 @@ package com.example.d.subscription.entity;
 
 import com.example.d.extra.AbstractEntity;
 import com.example.d.subscription.enums.BillingCycle;
+import com.example.d.subscription.enums.CurrencyType;
 import com.example.d.subscription.enums.SubscriptionStatus;
 import com.example.d.user.entity.Users;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.ManyToOne;
 import lombok.*;
 
@@ -28,6 +31,10 @@ public class Subscription extends AbstractEntity {
     private LocalDate startDate;
     //keyngi tolov sanasi
     private LocalDate setNextPaymentDate;
+
+    @Enumerated(EnumType.STRING)
+    private CurrencyType currency;
+
 
     private SubscriptionStatus status;
 

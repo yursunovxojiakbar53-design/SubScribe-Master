@@ -1,15 +1,18 @@
 package com.example.d.user.service;
 
+import com.example.d.currency.service.CurrencyService;
 import com.example.d.exception.ForbiddenException;
 import com.example.d.exception.NotFoundException;
 import com.example.d.extra.ApiResponse;
-import com.example.d.security.CustomUserDetails;
+import com.example.d.security.SecurityUtils;
 import com.example.d.subscription.dto.SubscriptionResponse;
 import com.example.d.subscription.entity.Subscription;
+import com.example.d.subscription.enums.CurrencyType;
 import com.example.d.user.dto.UserResponse;
 import com.example.d.user.dto.UserUpdateResponse;
 import com.example.d.user.entity.Users;
 import com.example.d.user.repository.UserRepo;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -18,6 +21,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -25,7 +29,8 @@ import java.util.List;
 public class UserService {
     private final UserRepo userRepo;
     private final PasswordEncoder passwordEncoder;
-
+private final SecurityUtils securityUtils;
+private final CurrencyService currencyService;
 
     public ApiResponse getUserById(Integer id) {
         Users user = userRepo.findById(id).orElseThrow(() -> new NotFoundException("User not found"));
@@ -42,7 +47,7 @@ public class UserService {
 
     public  ApiResponse deleteUser(Integer id, Authentication authentication) {
         Users user = userRepo.findById(id).orElseThrow(() -> new NotFoundException("User not found"));
-        String userName = getUser(authentication);
+        String userName = securityUtils.getUsername(authentication);
         if (!user.getUsername().equals(userName)) {
             throw new ForbiddenException("You are not allowed to delete this user");
         }
@@ -53,6 +58,10 @@ public class UserService {
 
     public ApiResponse updateUser(Integer id, UserUpdateResponse dto, Authentication authentication) {
         Users user = userRepo.findById(id).orElseThrow(() -> new NotFoundException("User not found"));
+        String username = securityUtils.getUsername(authentication);
+        if (!user.getUsername().equals(username)) {
+            throw new ForbiddenException("You are not allowed to update this user");
+        }
         user.setPassword(passwordEncoder.encode(dto.password()));
         if (dto.username() != null) user.setUsername(dto.username());
         if (dto.email() != null) user.setEmail(dto.email());
@@ -62,28 +71,45 @@ public class UserService {
     }
 
 
-
-    public SubscriptionResponse toSubscriptionResponse(Subscription subscription) {
+    public SubscriptionResponse toSubscriptionResponse(Subscription subscription, BigDecimal equivalentInBaseCurrency) {
         return new SubscriptionResponse(
                 subscription.getId(),
                 subscription.getServiceName(),
-                subscription.getAmount()
+                subscription.getAmount(),
+                subscription.getCurrency(),
+                equivalentInBaseCurrency,           // tashqaridan hisoblanib keladi (CurrencyService orqali)
+                subscription.getStartDate(),
+                subscription.getSetNextPaymentDate(),
+                subscription.getBillingCycle(),
+                subscription.getStatus()
         );
     }
+
 
     public UserResponse toResponse(Users users) {
         List<SubscriptionResponse> subs =
                 users.getSubscriptions()
                         .stream()
-                        .map(this::toSubscriptionResponse)
+                        .map(sub -> {
+                            BigDecimal equivalent = currencyService.convert(
+                                    sub.getAmount(),
+                                    sub.getCurrency(),
+                                    CurrencyType.UZS);
+                            return toSubscriptionResponse(sub, equivalent);})
                         .toList();
         return new UserResponse(users.getId(), users.getUsername(), subs);
     }
 
-    public String getUser(org.springframework.security.core.Authentication authentication) {
-        if (!(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
-            throw new ForbiddenException("Invalid user");
-        }
-        return userDetails.getUsername();
+
+
+    @Transactional
+    public ApiResponse updatePreferredCurrency(CurrencyType currency, Authentication authentication) {
+        String username = securityUtils.getUsername(authentication);
+        Users user = userRepo.findByUsername(username).orElseThrow(() -> new NotFoundException("User not found"));
+
+        user.setPreferredCurrency(currency);
+        userRepo.save(user);
+
+        return new ApiResponse("Preferred currency updated successfully", true);
     }
 }
