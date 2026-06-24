@@ -1,5 +1,6 @@
 package com.example.d.subscription.entity;
 
+import com.example.d.analytics.enums.SubscriptionCategory;
 import com.example.d.extra.AbstractEntity;
 import com.example.d.subscription.enums.BillingCycle;
 import com.example.d.subscription.enums.CurrencyType;
@@ -34,6 +35,9 @@ public class Subscription extends AbstractEntity {
 
     @Enumerated(EnumType.STRING)
     private CurrencyType currency;
+
+    @Enumerated(EnumType.STRING)
+    private SubscriptionCategory subscriptionCategory;
 
 
     private SubscriptionStatus status;
