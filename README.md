@@ -1,145 +1,54 @@
 # SubScribe Master
 
-Foydalanuvchilarning pullik obunalarini (Netflix, Spotify, ChatGPT, Adobe va h.k.)
-bitta tizimda jamlaydigan, sarf-xarajatlarni tahlil qiladigan, valyuta kursiga qarab
-asosiy valyutaga konvertatsiya qiladigan va to'lov muddati yaqinlashganda ogohlantirish
-yuboradigan **backend REST API**.
+SubScribe Master — obunalar (subscriptions) va foydalanuvchilar to'lov davrlarini samarali boshqarish uchun mo'ljallangan backend ilovasi.
 
-Asosiy imkoniyatlar:
-
-- JWT asosida ro'yxatdan o'tish / kirish, Refresh Token va Role-based (USER / ADMIN) kirish
-- Obunalar uchun CRUD, Soft Delete, Pagination
-- cbu.uz orqali valyuta kursini olish, keshlash (Caffeine) va Circuit Breaker (Resilience4j) bilan himoyalash
-- Har kuni 09:00 da to'lovi yaqinlashgan foydalanuvchilarga ogohlantirish (Scheduler + ShedLock)
-- Yillik xarajatlar bo'yicha Excel/CSV hisobot (Apache POI)
-- Statistika API: eng qimmat obuna, oylik xarajat, oylar dinamikasi, kategoriya bo'yicha taqsimot
-
-> ⚠️ Eslatma: bu loyiha hozircha aktiv ishlab chiqilmoqda. Ma'lum cheklovlar va
-> tuzatilishi kerak bo'lgan joylar [ARCHITECTURE.md](ARCHITECTURE.md) faylining
-> "Bilingan cheklovlar" bo'limida sanab o'tilgan.
+## Ilovaning Texnologik Steki
+* **Backend:** Java 17 / Spring Boot 3.x (JPA, Hibernate)
+* **Ma'lumotlar bazasi:** PostgreSQL 15
+* **Migratsiya:** Flyway (Database Migration)
+* **Konteynerizatsiya:** Docker & Docker Compose
+* **Hujjatlashtirish:** Swagger UI (Springdoc OpenAPI)
 
 ---
 
-## Texnologiyalar (pom.xml dan haqiqiy versiyalar)
+## Ishga Tushirish Qo'llanmasi
 
-| Texnologiya | Versiya | Maqsad |
-|---|---|---|
-| Java | 21 | Asosiy til (record, sealed, pattern matching) |
-| Spring Boot | 3.4.2 | Web, Data JPA, Security, Validation, Cache, Mail, AOP |
-| Spring Cloud | 2024.0.0 | Circuit Breaker BOM |
-| PostgreSQL | runtime (driver) | Asosiy ma'lumotlar bazasi |
-| Flyway | Spring Boot boshqaruvida | DB migratsiyasi (`flyway-core`, `flyway-database-postgresql`) |
-| MapStruct | 1.6.3 | Entity ↔ DTO mapping |
-| Caffeine | Spring Boot boshqaruvida | Valyuta kursini keshlash |
-| Resilience4j | spring-cloud-starter-circuitbreaker | Circuit Breaker / Fallback |
-| Apache POI | 5.3.0 | Excel (.xlsx) hisobot |
-| springdoc-openapi | 2.8.4 | Swagger / OpenAPI hujjati |
-| jjwt (api/impl/jackson) | 0.12.6 | JWT generatsiya / tekshirish |
-| ShedLock | 5.16.0 | Distributed scheduler lock |
-| Lombok | 1.18.36 | (kodda hali ishlatilmoqda) |
-| H2 | test scope | Test uchun in-memory DB |
+### Prerekvizitlar (Talablar)
+Tizimingizda quyidagi dasturlar o'rnatilgan va ishlayotgan bo'lishi shart:
+1. **Docker Desktop** (Windows uchun yoqilgan va yashil holatda bo'lishi kerak)
+2. **Git**
+3. **Java 17 / Maven** (Agar lokal build qilmoqchi bo'lsangiz)
 
-> TT'da migratsiya uchun "Liquibase / Flyway" deyilgan — bu loyihada **Flyway** tanlangan.
+### Qadamlar:
 
----
-
-## Lokal kompyuterda ishga tushirish
-
-### 1. Talablar
-- JDK 21
-- Maven 3.9+ (yoki repo ichidagi `./mvnw`)
-- PostgreSQL 14+
-
-### 2. PostgreSQL bazasini tayyorlash
-```sql
-CREATE DATABASE subscribe_master;
-```
-Ulanish manzili kodda `jdbc:postgresql://localhost:5432/subscribe_master` deb belgilangan
-(`src/main/resources/application.properties`).
-
-### 3. Konfiguratsiya (environment variables)
-Maxfiy ma'lumotlarni environment variable orqali bering (default qiymatlar `application.properties`
-ichida bor, lekin **production'da ularni albatta o'zgartiring**):
-
+1. **Loyihani klon qiling va papkaga kiring:**
 ```bash
-export DB_USERNAME=postgres
-export DB_PASSWORD=your_db_password
-export JWT_SECRET=your-very-long-random-secret-key
-export MAIL_USERNAME=your_gmail@gmail.com
-export MAIL_PASSWORD=your_gmail_app_password
-```
+   cd D:\SubScribeMasterProject\"SubScribe Master"
+Docker Desktop dasturini yoqing:
 
-### 4. Build va run
-```bash
-./mvnw clean package
-./mvnw spring-boot:run
-```
-yoki
-```bash
-java -jar target/d-0.0.1-SNAPSHOT.jar
-```
+Agarda terminalda Docker daemon API bilan bog'liq xatolik chiqsa, Docker Desktop dasturini administrator nomidan qayta ishga tushiring.
 
-Ilova sukut bo'yicha `http://localhost:8080` da ishga tushadi.
-Flyway dastur startida `src/main/resources/db/migration/V1__init.sql` migratsiyasini qo'llaydi.
+Loyihani Docker orqali build qiling va yurgizing:
 
----
+Bash
+   docker compose up --build -d
+Bu buyruq PostgreSQL bazasini va Spring Boot ilovasini konteyner ichida avtomat sozlaydi va orqa fonda yurgizadi.
 
-## Docker Compose
+Konteynerlar holatini tekshirish:
 
-Hozircha loyihada `docker-compose.yml` yoki `Dockerfile` **yo'q**.
-TT talab qilgan "bitta buyruq bilan ishga tushirish" hali amalga oshirilmagan.
+Bash
+   docker compose ps
+Xatoliklar va Loglarni kuzatish:
 
----
+Bash
+   docker compose logs -f
+API Hujjatlari (Swagger UI)
+Ilova to'liq ishga tushgandan so'ng, brauzeringiz orqali barcha API endpointlar, ularning izohlari va sxemalari bilan tanishishingiz hamda test qilishingiz mumkin:
 
-## Asosiy API endpoint'lar
+Swagger URL: http://localhost:8080/swagger-ui/index.html
 
-| Method | Path | Tavsif | Ruxsat |
-|---|---|---|---|
-| POST | `/api/auth/register` | Ro'yxatdan o'tish | Ochiq |
-| POST | `/api/auth/login` | Kirish (access + refresh token) | Ochiq |
-| PUT | `/api/auth/verify` | Email kodini tasdiqlash | Ochiq |
-| POST | `/api/auth/refresh` | Refresh token orqali yangi access token | Ochiq |
-| POST | `/api/auth/refresh/logout` | Refresh tokenni bekor qilish | Ochiq |
-| POST | `/api/v1/subscription` | Obuna qo'shish | `subscription:create` |
-| GET | `/api/v1/subscription?page=&size=` | Obunalar ro'yxati (pagination) | `subscription:read` |
-| PUT | `/api/v1/subscription/{id}` | Obunani yangilash | `subscription:update` |
-| DELETE | `/api/v1/subscription/{id}` | Obunani o'chirish (soft delete) | `subscription:delete` |
-| GET | `/api/v1/payment-history/subscription/{id}` | Obuna to'lov tarixi | `payment:read` |
-| GET | `/api/v1/analytics/most-expensive?period=` | Eng qimmat obuna | `analytics:read` |
-| GET | `/api/v1/analytics/monthly-spending` | Oylik umumiy xarajat | `analytics:read` |
-| GET | `/api/v1/analytics/trend?months=6` | Oylar bo'yicha dinamika | `analytics:read` |
-| GET | `/api/v1/analytics/by-category` | Kategoriya bo'yicha taqsimot | `analytics:read` |
-| GET | `/api/v1/analytics/admin/popular-services?limit=10` | Eng ko'p ishlatilgan xizmatlar | `admin:analytics:read` |
-| GET | `/api/v1/report/excel` | Excel hisobot (.xlsx) | `report:export` |
-| GET | `/api/v1/report/csv` | CSV hisobot | `report:export` |
-| GET | `/currency/usd` | USD → UZS kursi | `currency:read` |
-| GET | `/api/v1/user` | Foydalanuvchilar ro'yxati | `admin:user:read` |
-| GET | `/api/v1/user/{id}` | Foydalanuvchi (id bo'yicha) | `admin:user:read` |
-| PUT | `/api/v1/user/{id}` | Foydalanuvchini yangilash | `user:update` |
-| DELETE | `/api/v1/user/me/{id}` | O'z hisobini o'chirish | `user:delete` |
-| PATCH | `/api/v1/user/preferences/currency?currency=` | Asosiy valyutani o'zgartirish | `user:update` |
+Loyihani To'xtatish
+Konteynerlarni o'chirish va resurslarni bo'shatish uchun:
 
----
-
-## Swagger / OpenAPI
-
-- Swagger UI: `http://localhost:8080/swagger-ui/index.html`
-- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
-
-Bearer (JWT) avtorizatsiyasi `SwaggerConfig` da sozlangan — "Authorize" tugmasi orqali
-token kiritib test qilish mumkin.
-
----
-
-## Environment variables
-
-| O'zgaruvchi | Majburiymi | Default | Izoh |
-|---|---|---|---|
-| `DB_USERNAME` | Tavsiya etiladi | `postgres` | DB foydalanuvchi nomi |
-| `DB_PASSWORD` | **Ha (prod)** | hardcoded default | DB paroli |
-| `JWT_SECRET` | **Ha (prod)** | hardcoded default | JWT imzolash kaliti |
-| `MAIL_USERNAME` | Email kerak bo'lsa | hardcoded fallback | SMTP login |
-| `MAIL_PASSWORD` | Email kerak bo'lsa | hardcoded fallback | SMTP parol |
-
-> ⚠️ Hozir `application.properties` ichida real Gmail app-parol va DB parol hardcode
-> qilingan. Bu xavfsizlik nuqtai nazaridan tuzatilishi shart (qarang ARCHITECTURE.md).
+Bash
+docker compose down

@@ -72,8 +72,8 @@ public class AuthService {
     }
 
 
-    public ApiResponse verifyEmail(String email, Integer code) {
-        Users user = userRepo.findByEmail(email).orElse(null);
+    public ApiResponse verifyEmail(String userName, Integer code) {
+        Users user = userRepo.findByUsername(userName).orElse(null);
         if (user == null) return new ApiResponse("Not found", false);
         if (!code.equals(user.getEmailCode())) {
             return new ApiResponse("Wrong email code", false);

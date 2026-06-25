@@ -4,6 +4,8 @@ package com.example.d.report.controller;
 import com.example.d.extra.Perms;
 import com.example.d.extra.RequirePermission;
 import com.example.d.report.service.ReportService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -17,12 +19,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/report")
+@Tag(name = "Report", description = "Yillik xarajatlar hisobotini eksport qilish")
 public class ReportController {
 
     private final ReportService reportService;
 
     @GetMapping(value = "/excel", produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     @RequirePermission(Perms.REPORT_EXPORT)
+    @Operation(summary = "Excel hisobot (.xlsx)")
     public ResponseEntity<byte[]> downloadExcel(Authentication authentication) {
         byte[] content = reportService.generateExcelReport(authentication);
         return buildFileResponse(content, "yillik-hisobot.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
@@ -30,6 +34,7 @@ public class ReportController {
 
     @GetMapping(value = "/csv", produces = "text/csv")
     @RequirePermission(Perms.REPORT_EXPORT)
+    @Operation(summary = "CSV hisobot")
     public ResponseEntity<byte[]> downloadCsv(Authentication authentication) {
         byte[] content = reportService.generateCsvReport(authentication);
         return buildFileResponse(content, "yillik-hisobot.csv", "text/csv");
