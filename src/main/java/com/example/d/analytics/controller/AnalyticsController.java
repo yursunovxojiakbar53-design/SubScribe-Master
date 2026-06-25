@@ -1,7 +1,9 @@
-package com.example.d.analytics;
+package com.example.d.analytics.controller;
 
 import com.example.d.analytics.service.AnalyticsService;
 import com.example.d.extra.ApiResponse;
+import com.example.d.extra.Perms;
+import com.example.d.extra.RequirePermission;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -18,13 +20,14 @@ public class AnalyticsController {
     private final AnalyticsService analyticsService;
 
     @GetMapping("/most-expensive")
+    @RequirePermission(Perms.ANALYTICS_READ)
     public ResponseEntity<ApiResponse> getMostExpensive(@RequestParam(defaultValue = "OVERALL") String period, Authentication authentication) {
-
         boolean isCurrentMonth = "CURRENT_MONTH".equalsIgnoreCase(period);
         return ResponseEntity.ok(analyticsService.getMostExpensive(isCurrentMonth, authentication));
     }
 
     @GetMapping("/monthly-spending")
+    @RequirePermission(Perms.ANALYTICS_READ)
     public ResponseEntity<ApiResponse> getMonthlySpending(Authentication authentication) {
         return ResponseEntity.ok(analyticsService.getMonthlySpending(authentication));
     }
@@ -33,12 +36,24 @@ public class AnalyticsController {
      * GET /api/v1/analytics/trend?months=6
      */
     @GetMapping("/trend")
+    @RequirePermission(Perms.ANALYTICS_READ)
     public ResponseEntity<ApiResponse> getMonthlyTrend(@RequestParam(defaultValue = "6") int months, Authentication authentication) {
         return ResponseEntity.ok(analyticsService.getMonthlyTrend(months, authentication));
     }
 
     @GetMapping("/by-category")
+    @RequirePermission(Perms.ANALYTICS_READ)
     public ResponseEntity<ApiResponse> getByCategory(Authentication authentication) {
         return ResponseEntity.ok(analyticsService.getByCategoryBreakdown(authentication));
+    }
+
+    /**
+     * ADMIN: tizimdagi barcha foydalanuvchilar bo'yicha eng ko'p ishlatiladigan xizmatlar reytingi.
+     * GET /api/v1/analytics/admin/popular-services?limit=10
+     */
+    @GetMapping("/admin/popular-services")
+    @RequirePermission(Perms.ADMIN_ANALYTICS_READ)
+    public ResponseEntity<ApiResponse> getMostUsedServices(@RequestParam(defaultValue = "10") int limit) {
+        return ResponseEntity.ok(analyticsService.getMostUsedServices(limit));
     }
 }

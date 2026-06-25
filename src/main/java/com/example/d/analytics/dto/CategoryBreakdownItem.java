@@ -6,7 +6,7 @@ import com.example.d.analytics.enums.SubscriptionCategory;
 import java.math.BigDecimal;
 
 /**
- * Bitta kategoriya bo'yicha (Entertainment, Productivity, ...) oylik xarajat.
+ * Bitta kategoriya bo'yicha oylik xarajat
  */
 public record CategoryBreakdownItem(
         SubscriptionCategory category,

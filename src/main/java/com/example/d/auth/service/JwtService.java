@@ -38,9 +38,15 @@ public class JwtService {
                 .filter(a -> a.startsWith("ROLE_"))
                 .toList();
 
+        List<String> permissions = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority).filter(Objects::nonNull)
+                .filter(a -> !a.startsWith("ROLE_"))
+                .toList();
+
         return Jwts.builder()
                 .subject(userDetails.getUsername())
                 .claim("roles", roles)
+                .claim("permissions", permissions)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(key)

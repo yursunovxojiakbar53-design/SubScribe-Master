@@ -6,6 +6,7 @@ import com.example.d.auth.dto.RegisterDto;
 import com.example.d.auth.entity.RefreshToken;
 import com.example.d.user.repository.UserRepo;
 import com.example.d.exception.AlreadyExistException;
+import com.example.d.exception.NotFoundException;
 import com.example.d.extra.ApiResponse;
 import com.example.d.security.CustomUserDetails;
 import com.example.d.user.entity.Users;
@@ -32,6 +33,7 @@ public class AuthService {
 
     public ApiResponse register(RegisterDto users) {
         if (userRepo.existsByUsername(users.username())) throw new AlreadyExistException("User already exists");
+        if (userRepo.existsByEmail(users.email())) throw new AlreadyExistException("Email already exists");
         int emailCode = 100000 + new Random().nextInt(900000);
         Users user = Users.builder()
                 .username(users.username())
@@ -39,6 +41,7 @@ public class AuthService {
                 .fullName(users.fullName())
                 .email(users.email())
                 .role(Role.USER)
+                .enabled(false)
                 .accountNonLocked(true)
                 .notificationEnabled(true)
                 .emailCode(emailCode)
@@ -54,7 +57,8 @@ public class AuthService {
 
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.username(), request.password()));
 
-        Users user = userRepo.findByEmail(request.username()).orElseThrow();
+        Users user = userRepo.findByUsername(request.username())
+                .orElseThrow(() -> new NotFoundException("User not found"));
         UserDetails userDetails= new CustomUserDetails(user);
         String accessToken = jwtService.generateToken(userDetails);
 

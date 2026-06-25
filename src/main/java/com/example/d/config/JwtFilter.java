@@ -1,26 +1,26 @@
 package com.example.d.config;
 
 import com.example.d.auth.service.JwtService;
+import com.example.d.security.CustomUserDetails;
+import com.example.d.user.repository.UserRepo;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.stream.Stream;
 
 @Component
 @RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final UserRepo userRepo;
 
     @Override
     protected void doFilterInternal(
@@ -43,25 +43,22 @@ public class JwtFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 3. Username olish
         String username = jwtService.extractUsername(token);
 
-        List<SimpleGrantedAuthority> authorities = Stream.concat(
-                        jwtService.extractRoles(token).stream(),
-                        jwtService.extractPermissions(token).stream()
-                )
-                .distinct()
-                .map(SimpleGrantedAuthority::new)
-                .toList();
+        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            userRepo.findByUsername(username).ifPresent(user -> {
+                CustomUserDetails userDetails = new CustomUserDetails(user);
 
-        UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(
-                        username,
-                        null,
-                        authorities
-                );
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities()
+                        );
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            });
+        }
 
         filterChain.doFilter(request, response);
     }

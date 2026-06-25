@@ -21,16 +21,26 @@ public class SubscriptionScheduler {
         this.emailNotificationService = emailNotificationService;
     }
 
-    @Scheduled(cron = "0 0 10 * * ?")
+    @Scheduled(cron = "0 0 9 * * ?")
     @SchedulerLock(name = "SubscriptionScheduler_sendPaymentReminders", lockAtMostFor = "15m", lockAtLeastFor = "5m")
     public void sendPaymentReminders() {
         List<Subscription> subscriptions = subscriptionService.findSubscriptionsWithPaymentInDays(2);
         for (Subscription subscription : subscriptions) {
             Users user = subscription.getUser();
             if (user != null && user.isNotificationEnabled()) {
-                emailNotificationService.send(user.getEmail(), buildMessage(subscription));
+                emailNotificationService.send( buildMessage(subscription),user.getEmail());
             }
         }
+    }
+
+    /**
+     * Har kuni 00:30 da to'lov muddati kelgan aktiv obunalar uchun to'lov
+     * simulyatsiya qilinadi: PaymentHistory'ga yoziladi va keyingi to'lov sanasi suriladi.
+     */
+    @Scheduled(cron = "0 30 0 * * ?")
+    @SchedulerLock(name = "SubscriptionScheduler_processDuePayments", lockAtMostFor = "15m", lockAtLeastFor = "1m")
+    public void processDuePayments() {
+        subscriptionService.processDuePayments();
     }
 
     private String buildMessage(Subscription subscription) {

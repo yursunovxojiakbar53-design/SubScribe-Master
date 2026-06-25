@@ -4,6 +4,7 @@ import com.example.d.analytics.dto.CategoryBreakdownItem;
 import com.example.d.analytics.dto.MonthlySpendingResponse;
 import com.example.d.analytics.dto.MonthlyTrendPoint;
 import com.example.d.analytics.dto.MostExpensiveSubscriptionResponse;
+import com.example.d.analytics.dto.PopularServiceItem;
 import com.example.d.analytics.enums.SubscriptionCategory;
 import com.example.d.currency.service.CurrencyService;
 import com.example.d.exception.NotFoundException;
@@ -17,6 +18,7 @@ import com.example.d.subscription.repository.SubscriptionRepository;
 import com.example.d.user.entity.Users;
 import com.example.d.user.repository.UserRepo;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -91,14 +93,11 @@ public class AnalyticsService {
                 .orElse(null);
     }
 
-    // ====================  BIR OYLIK UMUMIY XARAJAT ====================
-
     @Transactional(readOnly = true)
     public ApiResponse getMonthlySpending(Authentication authentication) {
         Users user = getUser(authentication);
 
-        List<Subscription> activeSubscriptions = subscriptionRepository
-                .findByUser_IdAndIsDeleteFalse(user.getId())
+        List<Subscription> activeSubscriptions = subscriptionRepository.findByUser_IdAndIsDeleteFalse(user.getId())
                 .stream()
                 .filter(s -> s.getStatus() == SubscriptionStatus.ACTIVE)
                 .toList();
@@ -124,12 +123,8 @@ public class AnalyticsService {
         };
     }
 
-    // ==================== 3) OYLAR BO'YICHA DINAMIKA (chart uchun) ====================
+    // ====================  OYLAR BO'YICHA chart uchun   ====================
 
-    /**
-     * Oxirgi N oy ichida (PaymentHistory'dagi HAQIQIY to'lovlar asosida) har bir oyning
-     * umumiy xarajatini qaytaradi. Hech qanday taxminiy qiymat yo'q - faqat real tarix.
-     */
     @Transactional(readOnly = true)
     public ApiResponse getMonthlyTrend(int months, Authentication authentication) {
         Users user = getUser(authentication);
@@ -145,7 +140,6 @@ public class AnalyticsService {
                         Collectors.reducing(BigDecimal.ZERO, PaymentHistory::getAmountInBaseCurrency, BigDecimal::add)
                 ));
 
-        // Hatto to'lov bo'lmagan oylar ham 0 bilan ko'rinishi uchun - chart uzilib qolmasligi kerak
         List<MonthlyTrendPoint> trend = java.util.stream.Stream.iterate(YearMonth.from(start), ym -> ym.plusMonths(1))
                 .limit(months)
                 .map(ym -> {
@@ -158,12 +152,8 @@ public class AnalyticsService {
         return new ApiResponse("Oylik dinamika hisoblandi", true, trend);
     }
 
-    // ==================== 4) KATEGORIYA BO'YICHA GURUHLASH ====================
+    // ====================  KATEGORIYA BO'YICHA GURUHLASH ====================
 
-    /**
-     * Hozirgi ACTIVE obunalarni kategoriya bo'yicha guruhlab, har biri uchun
-     * oylikka normallashtirilgan umumiy xarajatni qaytaradi.
-     */
     @Transactional(readOnly = true)
     public ApiResponse getByCategoryBreakdown(Authentication authentication) {
         Users user = getUser(authentication);
@@ -196,6 +186,15 @@ public class AnalyticsService {
         return new ApiResponse("Kategoriya bo'yicha taqsimot hisoblandi", true, result);
     }
 
+
+    // ==================== ADMIN: ENG KO'P ISHLATILADIGAN XIZMATLAR ====================
+
+    @Transactional(readOnly = true)
+    public ApiResponse getMostUsedServices(int limit) {
+        List<PopularServiceItem> ranking = subscriptionRepository.findMostUsedServices(PageRequest.of(0, limit));
+
+        return new ApiResponse("Eng ko'p ishlatiladigan xizmatlar reytingi", true, ranking);
+    }
 
     private Users getUser(Authentication authentication) {
         String username = securityUtils.getUsername(authentication);

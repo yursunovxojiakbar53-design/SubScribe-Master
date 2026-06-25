@@ -1,6 +1,8 @@
 package com.example.d.report.controller;
 
 
+import com.example.d.extra.Perms;
+import com.example.d.extra.RequirePermission;
 import com.example.d.report.service.ReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ContentDisposition;
@@ -20,12 +22,14 @@ public class ReportController {
     private final ReportService reportService;
 
     @GetMapping(value = "/excel", produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    @RequirePermission(Perms.REPORT_EXPORT)
     public ResponseEntity<byte[]> downloadExcel(Authentication authentication) {
         byte[] content = reportService.generateExcelReport(authentication);
         return buildFileResponse(content, "yillik-hisobot.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     }
 
     @GetMapping(value = "/csv", produces = "text/csv")
+    @RequirePermission(Perms.REPORT_EXPORT)
     public ResponseEntity<byte[]> downloadCsv(Authentication authentication) {
         byte[] content = reportService.generateCsvReport(authentication);
         return buildFileResponse(content, "yillik-hisobot.csv", "text/csv");

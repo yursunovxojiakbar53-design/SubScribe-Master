@@ -4,14 +4,17 @@ import com.example.d.currency.service.CurrencyService;
 import com.example.d.exception.ForbiddenException;
 import com.example.d.exception.NotFoundException;
 import com.example.d.extra.ApiResponse;
+import com.example.d.payment.service.PaymentHistoryService;
 import com.example.d.security.SecurityUtils;
 import com.example.d.subscription.dto.SubscriptionCreateRequest;
 import com.example.d.subscription.dto.SubscriptionResponse;
 import com.example.d.subscription.entity.Subscription;
 import com.example.d.subscription.enums.BillingCycle;
+import com.example.d.subscription.enums.CurrencyType;
 import com.example.d.subscription.enums.SubscriptionStatus;
 import com.example.d.subscription.mapper.SubscriptionMapper;
 import com.example.d.subscription.repository.SubscriptionRepository;
+import com.example.d.subscription.specification.SubscriptionSpecifications;
 import com.example.d.user.entity.Users;
 import com.example.d.user.repository.UserRepo;
 import jakarta.transaction.Transactional;
@@ -19,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
@@ -34,6 +38,7 @@ public class SubscriptionService {
     private final SubscriptionRepository subscriptionRepository;
     private final CurrencyService currencyService;
     private final SecurityUtils securityUtils;
+    private final PaymentHistoryService paymentHistoryService;
 
     @Transactional
     public ApiResponse addSubscription(SubscriptionCreateRequest request, Authentication authentication) {
@@ -44,9 +49,13 @@ public class SubscriptionService {
         subscription.setUser(user);
         subscription.setStatus(SubscriptionStatus.ACTIVE);
         subscription.setIsDelete(false);
-        subscription.setSetNextPaymentDate(calculateNextPaymentDate(subscription.getStartDate(), subscription.getBillingCycle()));
 
         subscriptionRepository.save(subscription);
+
+        // startDate'dan bugungi kungacha bo'lgan barcha to'lovlar simulyatsiya qilinib
+        // PaymentHistory'ga yoziladi (mavjud obunani jamlashda tarix darhol paydo bo'lishi uchun),
+        // setNextPaymentDate esa kelajakdagi birinchi to'lov sanasiga o'rnatiladi.
+        backfillPastPayments(subscription);
 
         return new ApiResponse("Subscription added successfully", true, buildResponse(subscription, user));
     }
@@ -64,11 +73,16 @@ public class SubscriptionService {
     }
 
 
-    public ApiResponse getSubscription(int page, int size, Authentication authentication) {
+    public ApiResponse getSubscription(int page, int size, SubscriptionStatus status, CurrencyType currency,
+                                       BigDecimal minPrice, BigDecimal maxPrice, Authentication authentication) {
         Pageable pageable = PageRequest.of(page, size);
         String userName = securityUtils.getUsername(authentication);
         Users users = userRepo.findByUsername(userName).orElseThrow(() -> new NotFoundException("User not found"));
-        Page<Subscription> subscriptions = subscriptionRepository.findByUser_IdAndIsDeleteFalse(users.getId(), pageable);
+
+        Specification<Subscription> spec =
+                SubscriptionSpecifications.filter(users.getId(), status, currency, minPrice, maxPrice);
+
+        Page<Subscription> subscriptions = subscriptionRepository.findAll(spec, pageable);
         Page<SubscriptionResponse> response = subscriptions.map(subscriptionMapper::toResponse);
         return new ApiResponse("Subscription retrieved successfully", true, response);
     }
@@ -100,6 +114,59 @@ public class SubscriptionService {
         return new ApiResponse("Subscription deleted successfully", true);
     }
 
+
+    @Transactional
+    public ApiResponse changeStatus(Integer id, SubscriptionStatus newStatus, Authentication authentication) {
+        Subscription subscription = subscriptionRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Subscription not found"));
+        String userName = securityUtils.getUsername(authentication);
+        if (!subscription.getUser().getUsername().equals(userName)) {
+            throw new ForbiddenException("User not allowed to change this subscription");
+        }
+
+        subscription.setStatus(newStatus);
+        subscriptionRepository.save(subscription);
+        return new ApiResponse("Subscription status updated to " + newStatus, true,
+                subscriptionMapper.toResponse(subscription));
+    }
+
+    /**
+     * To'lov muddati kelgan (yoki o'tib ketgan) aktiv obunalar uchun to'lovni
+     * PaymentHistory'ga yozadi va keyingi to'lov sanasini bir davrga suradi.
+     * Scheduler tomonidan chaqiriladi.
+     */
+    @Transactional
+    public void processDuePayments() {
+        LocalDate today = LocalDate.now();
+        List<Subscription> due = subscriptionRepository
+                .findByStatusAndIsDeleteFalseAndSetNextPaymentDateLessThanEqual(SubscriptionStatus.ACTIVE, today);
+
+        for (Subscription subscription : due) {
+            paymentHistoryService.recordPayment(subscription, subscription.getSetNextPaymentDate());
+            subscription.setSetNextPaymentDate(
+                    calculateNextPaymentDate(subscription.getSetNextPaymentDate(), subscription.getBillingCycle()));
+        }
+        subscriptionRepository.saveAll(due);
+    }
+
+    /**
+     * Obuna {@code startDate}'idan bugungi kungacha bo'lgan har bir to'lov sanasini
+     * simulyatsiya qilib PaymentHistory'ga yozadi va keyingi to'lov sanasini (kelajakdagi
+     * birinchi sana) o'rnatadi. Agar startDate kelajakda bo'lsa, to'lov yozilmaydi va
+     * setNextPaymentDate = startDate bo'ladi.
+     */
+    private void backfillPastPayments(Subscription subscription) {
+        LocalDate today = LocalDate.now();
+        LocalDate paymentDate = subscription.getStartDate();
+
+        while (!paymentDate.isAfter(today)) {
+            paymentHistoryService.recordPayment(subscription, paymentDate);
+            paymentDate = calculateNextPaymentDate(paymentDate, subscription.getBillingCycle());
+        }
+
+        subscription.setSetNextPaymentDate(paymentDate);
+        subscriptionRepository.save(subscription);
+    }
 
     private LocalDate calculateNextPaymentDate(LocalDate startDate, BillingCycle billingCycle) {
         return switch (billingCycle) {

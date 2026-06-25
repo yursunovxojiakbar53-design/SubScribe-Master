@@ -111,6 +111,10 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
 
         <!-- Versiya endi yozilmaydi - spring-cloud-dependencies BOM avtomatik
              Spring Boot 3.4.2 bilan mos versiyani tanlaydi -->

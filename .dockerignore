@@ -1,0 +1,13 @@
+target/
+.git/
+.gitignore
+.gitattributes
+.idea/
+*.iml
+.vscode/
+.agents/
+.mvn/wrapper/maven-wrapper.jar
+HELP.md
+README.md
+ARCHITECTURE.md
+create.sql

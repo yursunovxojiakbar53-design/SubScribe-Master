@@ -1,0 +1,46 @@
+services:
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: sub_master_postgres
+    environment:
+      POSTGRES_DB: subscribe_master
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "123qwe&&"
+      TZ: Asia/Tashkent
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d subscribe_master"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  spring-app:
+    build: .
+    container_name: sub_master_app
+    ports:
+      - "8080:8080"
+    environment:
+
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/subscribe_master
+      DB_USERNAME: postgres
+      DB_PASSWORD: "123qwe&&"
+      JWT_SECRET: change-me-please-use-a-long-random-secret-in-production
+      TZ: Asia/Tashkent
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - app-network
+
+volumes:
+  pgdata:
+
+networks:
+  app-network:
+    driver: bridge

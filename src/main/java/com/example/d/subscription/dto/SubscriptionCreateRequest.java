@@ -14,7 +14,7 @@ public class SubscriptionCreateRequest {
     private String serviceName;
 
     @NotNull(message = "Narx kiritilishi shart")
-    private BigDecimal price;
+    private BigDecimal amount;
 
     @NotNull(message = "Valyuta tanlanishi shart")
     private CurrencyType currency;
@@ -25,11 +25,11 @@ public class SubscriptionCreateRequest {
     @NotNull(message = "Boshlanish sanasi kiritilishi shart")
     private LocalDate startDate;
 
-    private SubscriptionCategory subscriptionCategory;
+    private final SubscriptionCategory subscriptionCategory;
 
-    public SubscriptionCreateRequest(String serviceName, BigDecimal price, CurrencyType currency, BillingCycle billingCycle, LocalDate startDate, SubscriptionCategory subscriptionCategory) {
+    public SubscriptionCreateRequest(String serviceName, BigDecimal amount, CurrencyType currency, BillingCycle billingCycle, LocalDate startDate, SubscriptionCategory subscriptionCategory) {
         this.serviceName = serviceName;
-        this.price = price;
+        this.amount = amount;
         this.currency = currency;
         this.billingCycle = billingCycle;
         this.startDate = startDate;
@@ -40,8 +40,12 @@ public class SubscriptionCreateRequest {
         return serviceName;
     }
 
-    public BigDecimal getPrice() {
-        return price;
+    public BigDecimal getAmount() {
+        return amount;
+    }
+
+    public void setAmount(BigDecimal amount) {
+        this.amount = amount;
     }
 
     public CurrencyType getCurrency() {

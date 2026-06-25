@@ -1,6 +1,8 @@
 package com.example.d.payment.controller;
 
 
+import com.example.d.extra.Perms;
+import com.example.d.extra.RequirePermission;
 import com.example.d.payment.service.PaymentHistoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,7 @@ public class PaymentHistoryController {
     private final PaymentHistoryService paymentHistoryService;
 
     @GetMapping("/subscription/{subscriptionId}")
+    @RequirePermission(Perms.PAYMENT_READ)
     public ResponseEntity<?> getHistory(@PathVariable Integer subscriptionId, Authentication authentication) {
         return ResponseEntity.ok(paymentHistoryService.getHistoryBySubscription(subscriptionId, authentication));
     }

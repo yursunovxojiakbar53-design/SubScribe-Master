@@ -5,14 +5,15 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 @Service
-public class EmailNotificationService {
+public class EmailNotificationService implements NotificationService {
     private final JavaMailSender mailSender;
 
     public EmailNotificationService(JavaMailSender mailSender) {
         this.mailSender = mailSender;
     }
 
-    public void send(String toEmail, String message) {
+    @Override
+    public void send(String message,String toEmail) {
         SimpleMailMessage mail = new SimpleMailMessage();
         mail.setTo(toEmail);
         mail.setSubject("Subscription Reminder");

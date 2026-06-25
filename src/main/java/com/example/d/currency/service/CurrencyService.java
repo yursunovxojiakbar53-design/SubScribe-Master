@@ -4,9 +4,9 @@ import com.example.d.currency.client.CbuApiClient;
 import com.example.d.currency.dto.CurrencyRateDto;
 import com.example.d.subscription.enums.CurrencyType;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -18,20 +18,22 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class CurrencyService {
 
     private final CbuApiClient cbuApiClient;
+    private final CurrencyService self;
 
-    // Circuit Breaker ishlamay qolganda ishlatiladigan, oxirgi muvaffaqiyatli kelgan natija
+
     private volatile Map<String, BigDecimal> lastKnownRates = new ConcurrentHashMap<>();
 
-    /**
-     * Barcha valyutalar kursini cbu.uz'dan olib keladi, 24 soat keshlanadi.
-     * Agar API ishlamasa (timeout/500), getFallbackRates() chaqiriladi.
-     */
+    public CurrencyService(CbuApiClient cbuApiClient, @Lazy CurrencyService self) {
+        this.cbuApiClient = cbuApiClient;
+        this.self = self;
+    }
+
+
     @Cacheable("currency-rates")
-    @CircuitBreaker(name = "debugApi", fallbackMethod = "getFallbackRates")
+    @CircuitBreaker(name = "cbuApi", fallbackMethod = "getFallbackRates")
     public Map<String, BigDecimal> getRates() {
         List<CurrencyRateDto> rates = cbuApiClient.getRates();
 
@@ -41,13 +43,11 @@ public class CurrencyService {
                         rate -> new BigDecimal(rate.rate())
                 ));
 
-        lastKnownRates = result; // muvaffaqiyatli bo'lsa, fallback uchun saqlab qo'yamiz
+        lastKnownRates = result;
         return result;
     }
 
-    /**
-     * Fallback metod - imzosi asosiy metodga mos bo'lishi shart (+ Throwable parametri).
-     */
+
     private Map<String, BigDecimal> getFallbackRates(Throwable t) {
         log.warn("CBU API ishlamadi, oxirgi keshlangan kurslardan foydalanilmoqda. Sabab: {}", t.getMessage());
         if (lastKnownRates.isEmpty()) {
@@ -61,7 +61,7 @@ public class CurrencyService {
         if (currency == CurrencyType.UZS) {
             return BigDecimal.ONE;
         }
-        BigDecimal rate = getRates().get(currency.name());
+        BigDecimal rate = self.getRates().get(currency.name());
         if (rate == null) {
             throw new RuntimeException(currency + " kursi topilmadi");
         }
