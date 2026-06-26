@@ -83,7 +83,7 @@ public class SubscriptionService {
                 SubscriptionSpecifications.filter(users.getId(), status, currency, minPrice, maxPrice);
 
         Page<Subscription> subscriptions = subscriptionRepository.findAll(spec, pageable);
-        Page<SubscriptionResponse> response = subscriptions.map(subscriptionMapper::toResponse);
+        Page<SubscriptionResponse> response = subscriptions.map(sub -> buildResponse(sub, users));
         return new ApiResponse("Subscription retrieved successfully", true, response);
     }
 
@@ -96,7 +96,7 @@ public class SubscriptionService {
             throw new ForbiddenException("User not allowed to update subscription");
 
         subscriptionMapper.updateEntityFromDto(request, subscription);
-        subscription.setSetNextPaymentDate(calculateNextPaymentDate(request.getStartDate(), request.getBillingCycle()));
+        subscription.setNextPaymentDate(calculateNextPaymentDate(request.getStartDate(), request.getBillingCycle()));
         subscriptionRepository.save(subscription);
         return new ApiResponse("Subscription updated successfully", true, subscriptionMapper.toResponse(subscription));
     }
@@ -142,9 +142,9 @@ public class SubscriptionService {
                 .findByStatusAndIsDeleteFalseAndSetNextPaymentDateLessThanEqual(SubscriptionStatus.ACTIVE, today);
 
         for (Subscription subscription : due) {
-            paymentHistoryService.recordPayment(subscription, subscription.getSetNextPaymentDate());
-            subscription.setSetNextPaymentDate(
-                    calculateNextPaymentDate(subscription.getSetNextPaymentDate(), subscription.getBillingCycle()));
+            paymentHistoryService.recordPayment(subscription, subscription.getNextPaymentDate());
+            subscription.setNextPaymentDate(
+                    calculateNextPaymentDate(subscription.getNextPaymentDate(), subscription.getBillingCycle()));
         }
         subscriptionRepository.saveAll(due);
     }
@@ -164,7 +164,7 @@ public class SubscriptionService {
             paymentDate = calculateNextPaymentDate(paymentDate, subscription.getBillingCycle());
         }
 
-        subscription.setSetNextPaymentDate(paymentDate);
+        subscription.setNextPaymentDate(paymentDate);
         subscriptionRepository.save(subscription);
     }
 

@@ -9,8 +9,11 @@ import org.mapstruct.MappingTarget;
 
 @Mapper(componentModel = "spring")
 public interface SubscriptionMapper {
+
+    @Mapping(source = "amount", target = "price")
     Subscription toEntity(SubscriptionCreateRequest request);
 
+    @Mapping(source = "amount", target = "price")
     @Mapping(target = "equivalentInBaseCurrency", ignore = true)
     SubscriptionResponse toResponse(Subscription entity);
 

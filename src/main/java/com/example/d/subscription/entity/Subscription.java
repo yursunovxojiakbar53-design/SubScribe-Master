@@ -17,7 +17,7 @@ public class Subscription extends AbstractEntity {
     private String serviceName;
     private BigDecimal amount;
     private LocalDate startDate;
-    private LocalDate setNextPaymentDate;
+    private LocalDate nextPaymentDate;
 
     @Enumerated(EnumType.STRING)
     private CurrencyType currency;
@@ -40,13 +40,13 @@ public class Subscription extends AbstractEntity {
     public Subscription() {
     }
 
-    public Subscription(String serviceName, BigDecimal amount, LocalDate startDate, LocalDate setNextPaymentDate,
+    public Subscription(String serviceName, BigDecimal amount, LocalDate startDate, LocalDate nextPaymentDate,
                         CurrencyType currency, SubscriptionCategory subscriptionCategory, SubscriptionStatus status,
                         BillingCycle billingCycle, Boolean isDelete, Users user) {
         this.serviceName = serviceName;
         this.amount = amount;
         this.startDate = startDate;
-        this.setNextPaymentDate = setNextPaymentDate;
+        this.nextPaymentDate = nextPaymentDate;
         this.currency = currency;
         this.subscriptionCategory = subscriptionCategory;
         this.status = status;
@@ -60,7 +60,7 @@ public class Subscription extends AbstractEntity {
         this.serviceName = builder.serviceName;
         this.amount = builder.amount;
         this.startDate = builder.startDate;
-        this.setNextPaymentDate = builder.setNextPaymentDate;
+        this.nextPaymentDate = builder.nextPaymentDate;
         this.currency = builder.currency;
         this.subscriptionCategory = builder.subscriptionCategory;
         this.status = builder.status;
@@ -97,12 +97,13 @@ public class Subscription extends AbstractEntity {
         this.startDate = startDate;
     }
 
-    public LocalDate getSetNextPaymentDate() {
-        return setNextPaymentDate;
+
+    public LocalDate getNextPaymentDate() {
+        return nextPaymentDate;
     }
 
-    public void setSetNextPaymentDate(LocalDate setNextPaymentDate) {
-        this.setNextPaymentDate = setNextPaymentDate;
+    public void setNextPaymentDate(LocalDate nextPaymentDate) {
+        this.nextPaymentDate = nextPaymentDate;
     }
 
     public CurrencyType getCurrency() {
@@ -160,7 +161,7 @@ public class Subscription extends AbstractEntity {
                 ", serviceName='" + serviceName + '\'' +
                 ", amount=" + amount +
                 ", startDate=" + startDate +
-                ", setNextPaymentDate=" + setNextPaymentDate +
+                ", setNextPaymentDate=" + nextPaymentDate +
                 ", currency=" + currency +
                 ", subscriptionCategory=" + subscriptionCategory +
                 ", status=" + status +
@@ -173,7 +174,7 @@ public class Subscription extends AbstractEntity {
         private String serviceName;
         private BigDecimal amount;
         private LocalDate startDate;
-        private LocalDate setNextPaymentDate;
+        private LocalDate nextPaymentDate;
         private CurrencyType currency;
         private SubscriptionCategory subscriptionCategory;
         private SubscriptionStatus status;
@@ -196,8 +197,8 @@ public class Subscription extends AbstractEntity {
             return this;
         }
 
-        public Builder setNextPaymentDate(LocalDate setNextPaymentDate) {
-            this.setNextPaymentDate = setNextPaymentDate;
+        public Builder setNextPaymentDate(LocalDate nextPaymentDate) {
+            this.nextPaymentDate = nextPaymentDate;
             return this;
         }
 
